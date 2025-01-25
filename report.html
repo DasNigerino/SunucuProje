@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satış Raporu</title>
+    <style>
+        canvas {
+    max-width: 400px; /* Maksimum genişlik */
+    max-height: 300px; /* Maksimum yükseklik */
+    margin: auto; /* Grafiklerin ortalanması */
+    display: block;
+  }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+        }
+        h1 {
+            text-align: center;
+            color: #1d2634;
+        }
+        .rapport-section {
+            margin-top: 20px;
+        }
+        .table-container {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .table-container th, .table-container td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .table-container th {
+            background-color: #1d2634;
+            color: white;
+        }
+        .table-container tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #1d2634;
+        }
+        .data-row {
+            margin-bottom: 15px;
+        }
+        .chart-container {
+            margin-top: 30px;
+        }
+        canvas {
+            width: 100% !important;
+            max-width: 800px;
+            height: 400px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Satış Raporu</h1>
+
+        <div class="rapport-section">
+            <div class="section-title">Toplam Ciro</div>
+            <p><strong>Toplam Ciro:</strong> 107850.00</p>
+        </div>
+
+        <div class="rapport-section">
+            <div class="section-title">En İyi Ürünler</div>
+            <table class="table-container">
+                <thead>
+                    <tr>
+                        <th>Ürün</th>
+                        <th>Toplam Miktar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Telefon</td>
+                        <td>16</td>
+                    </tr>
+                    <tr>
+                        <td>Dizüstü Bilgisayar</td>
+                        <td>12</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="rapport-section">
+            <div class="section-title">Aylık Satışlar</div>
+            <div class="data-row">
+                <strong>Aylık:</strong> 1, <strong>Toplam Satış:</strong> 107850.00
+            </div>
+            <div class="chart-container">
+                <canvas id="ventesParMoisChart"></canvas>
+            </div>
+        </div>
+
+        <div class="rapport-section">
+            <div class="section-title">Müşteriler</div>
+            <div class="data-row">
+                <strong>Müşteri:</strong> Yılmaz, <strong>Aldığı Ürün Sayısı:</strong> 1, <strong>Toplam Harcama:</strong> 10000.00
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Aylık satışlar grafiği
+        const ctxVentesParMois = document.getElementById('ventesParMoisChart').getContext('2d');
+        const ventesParMoisChart = new Chart(ctxVentesParMois, {
+            type: 'line', // Grafik türü: çizgi
+            data: {
+                labels: ['Ocak'], // Aylar
+                datasets: [{
+                    label: 'Aylık Satışlar',
+                    data: [107850.00], // Aylık satış rakamı
+                    borderColor: '#1d2634',
+                    backgroundColor: 'rgba(29, 38, 52, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // En iyi ürünler grafiği
+        const ctxMeilleursProduits = document.createElement('canvas');
+        document.querySelector('.container').appendChild(ctxMeilleursProduits);
+        const meilleursProduitsChart = new Chart(ctxMeilleursProduits, {
+            type: 'bar', // Grafik türü: çubuk
+            data: {
+                labels: ['Telefon', 'Dizüstü Bilgisayar'], // Ürünler
+                datasets: [{
+                    label: 'Toplam Miktar',
+                    data: [16, 12], // Ürünlerin miktarı
+                    backgroundColor: ['#ff5733', '#33c1ff'],
+                    borderColor: ['#ff5733', '#33c1ff'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

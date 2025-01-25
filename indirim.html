@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İndirimli Ürünler</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <style>
+    #dataTable {
+      width: 100%;
+      margin: 20px auto;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">İndirimli Ürünler Listesi</h1>
+  <table id="dataTable" class="display">
+    <thead>
+      <tr>
+        <th>Ürün</th>
+        <th>Orijinal Fiyat (₺)</th>
+        <th>Son Fiyat (₺)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      const table = $('#dataTable').DataTable({
+        ajax: {
+          url: 'http://localhost:8000/api/produits-remises',
+          dataSrc: '',
+        },
+        columns: [
+  { data: 'produit' },
+  { 
+    data: 'prix_original',
+    render: function (data) {
+      const prix = parseFloat(data);
+      return isNaN(prix) ? 'Yok' : `${prix.toFixed(2)} ₺`;
+    }
+  },
+  { 
+    data: 'prix_final',
+    render: function (data) {
+      const prix = parseFloat(data);
+      return isNaN(prix) ? 'Yok' : `${prix.toFixed(2)} ₺`;
+    }
+  },
+],
+
+      });
+    });
+
+    app.get('/api/retours-produits', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                urunler.ad AS produit,
+                COUNT(retours.id) AS nombre_retours
+            FROM retours
+            JOIN satislar ON retours.satis_id = satislar.id
+            JOIN urunler ON satislar.urun_id = urunler.id
+            GROUP BY urunler.ad
+        `);
+        res.json(rows);
+    } catch (error) {
+        console.error('İade verileri alınırken hata oluştu:', error);
+        res.status(500).json({ message: 'Sunucu hatası' });
+    }
+});
+
+  </script>
+</body>
+</html>

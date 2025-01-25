@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Envanter ve İstatistikler</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+    .hidden {
+      display: none;
+    }
+    .dark-mode {
+      background-color: #333;
+      color: #fff;
+    }
+    .dark-mode th {
+      background-color: #555;
+    }
+  </style>
+</head>
+<body>
+  <button onclick="toggleDarkMode()">Açık/Koyu Mod</button>
+  <button onclick="window.location.href='dashboard.html'">Ana Sayfaya Dön</button>
+
+  <div class="section">
+    <button onclick="toggleTable('stockActuel')">Mevcut Stoku Göster/Gizle</button>
+    <h2>Mevcut Stok</h2>
+    <table id="stockActuel" class="hidden">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th>Başlangıç Stoku</th>
+          <th>Toplam Hareket</th>
+          <th>Mevcut Stok</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <button onclick="toggleTable('stockCritique')">Kritik Stoku Göster/Gizle</button>
+    <h2>Kritik Stoktaki Ürünler</h2>
+    <table id="stockCritique" class="hidden">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th>Başlangıç Stoku</th>
+          <th>Mevcut Stok</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <button onclick="toggleTable('produitsPopulaires')">En Çok Satan Ürünleri Göster/Gizle</button>
+    <h2>En Çok Satan Ürünler</h2>
+    <table id="produitsPopulaires" class="hidden">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th>Toplam Satış</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <button onclick="toggleTable('ventesRetours')">Satış ve İade Özeti Göster/Gizle</button>
+    <h2>Satış ve İade Özeti</h2>
+    <table id="ventesRetours" class="hidden">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th>Toplam Satış</th>
+          <th>Toplam İade</th>
+          <th>Ciro</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function fetchAndRenderTable(apiUrl, tableId, columns) {
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        const tbody = document.querySelector(`#${tableId} tbody`);
+        tbody.innerHTML = '';
+
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          columns.forEach(column => {
+            const td = document.createElement('td');
+            td.textContent = row[column] !== undefined ? row[column] : 'Yok';
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      } catch (error) {
+        console.error(`${tableId} verileri yüklenirken hata oluştu:`, error);
+      }
+    }
+
+    function toggleTable(tableId) {
+      const table = document.getElementById(tableId);
+      table.classList.toggle('hidden');
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchAndRenderTable('http://localhost:8000/api/inventaire/stock-actuel', 'stockActuel', ['produit', 'stock_initial', 'mouvement_total', 'stock_actuel']);
+      fetchAndRenderTable('http://localhost:8000/api/inventaire/stock-critique', 'stockCritique', ['produit', 'stock_initial', 'stock_actuel']);
+      fetchAndRenderTable('http://localhost:8000/api/inventaire/produits-populaires', 'produitsPopulaires', ['produit', 'ventes_totales']);
+      fetchAndRenderTable('http://localhost:8000/api/inventaire/ventes-retours', 'ventesRetours', ['produit', 'ventes_totales', 'retours_totaux', 'chiffre_affaires']);
+    });
+  </script>
+</body>
+</html>

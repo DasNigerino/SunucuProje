@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grafik ve Filtreleme ile DataTable</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <style>
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 20px;
+    }
+    #dataTable {
+      width: 100%;
+    }
+    #chart {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #filters {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+    }
+    body.dark-mode {
+      background-color: #121212;
+      color: #ffffff;
+    }
+    body.dark-mode #dataTable {
+      background-color: #333333;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <div id="filters">
+    <select id="categoryFilter">
+      <option value="">Tüm Kategoriler</option>
+      <option value="Elektronik">Elektronik</option>
+      <option value="Ev">Ev</option>
+      <option value="Oyuncaklar">Oyuncaklar</option>
+    </select>
+    <input type="number" id="minPriceFilter" placeholder="Minimum Fiyat (₺)">
+    <input type="number" id="maxPriceFilter" placeholder="Maksimum Fiyat (₺)">
+    <button id="applyFilters">Uygula</button>
+    <button id="resetFilters">Sıfırla</button>
+    <button id="toggleMode">Açık/Koyu</button>
+    <button id="homeButton">Anasayfa</button>
+  </div>
+
+  <div id="container">
+    <table id="dataTable" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Ürün Adı</th>
+          <th>Fiyat (₺)</th>
+          <th>Stok</th>
+          <th>Kategori</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="chart">
+      <canvas id="myChart" width="400" height="200"></canvas>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    $(document).ready(function () {
+      let table = $('#dataTable').DataTable({
+        ajax: {
+          url: 'http://localhost:8000/api/urunler',
+          dataSrc: '',
+        },
+        columns: [
+          { data: 'id' },
+          { data: 'ad' },
+          { data: 'fiyat' },
+          { data: 'stok' },
+          { data: 'kategori' },
+        ],
+      });
+
+      let chartInstance;
+
+      function updateChart(data) {
+        const labels = data.map(item => item.ad);
+        const prices = data.map(item => parseFloat(item.fiyat));
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Ürün Fiyatları (₺)',
+                data: prices,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: true,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Ürün Adı',
+                },
+              },
+            },
+          },
+        });
+      }
+
+      $('#dataTable').on('xhr.dt', function (e, settings, json) {
+        updateChart(json);
+      });
+
+      // Verileri filtreleme
+      $('#applyFilters').on('click', function () {
+        const category = $('#categoryFilter').val();
+        const minPrice = parseFloat($('#minPriceFilter').val()) || 0;
+        const maxPrice = parseFloat($('#maxPriceFilter').val()) || Infinity;
+
+        // Verileri filtrele
+        table.ajax.url('http://localhost:8000/api/urunler').load(function (data) {
+          const filteredData = data.filter(item => {
+            return (
+              (category === '' || item.kategori === category) &&
+              parseFloat(item.fiyat) >= minPrice &&
+              parseFloat(item.fiyat) <= maxPrice
+            );
+          });
+
+          updateChart(filteredData);
+          table.clear();
+          table.rows.add(filteredData);
+          table.draw();
+        });
+      });
+
+      // Filtreleri sıfırlama
+      $('#resetFilters').on('click', function () {
+        $('#categoryFilter').val('');
+        $('#minPriceFilter').val('');
+        $('#maxPriceFilter').val('');
+
+        table.ajax.url('http://localhost:8000/api/urunler').load(function (data) {
+          updateChart(data);
+          table.clear();
+          table.rows.add(data);
+          table.draw();
+        });
+      });
+
+      // Açık/Koyu mod
+      $('#toggleMode').on('click', function () {
+        $('body').toggleClass('dark-mode');
+      });
+
+      // Anasayfaya dön
+      $('#homeButton').on('click', function () {
+        window.location.href = 'dashboard.html';
+      });
+    });
+  </script>
+</body>
+</html>

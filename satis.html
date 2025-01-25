@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filtreli ve Sıfırlamalı Alışverişler</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .dark-mode {
+      background-color: #333;
+      color: #fff;
+    }
+    .dark-mode table {
+      color: #fff;
+    }
+    .dark-mode th, .dark-mode td {
+      border-color: #555;
+    }
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 20px;
+    }
+    #dataTable {
+      width: 100%;
+    }
+    #chart {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #filters {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+    }
+    #buttons {
+      margin-bottom: 20px;
+    }
+    #buttons button {
+      margin-right: 10px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #toggleMode {
+      background-color: #0275d8;
+      color: #fff;
+    }
+    #toggleMode:hover {
+      background-color: #025aa5;
+    }
+    #homeButton {
+      background-color: #5cb85c;
+      color: #fff;
+    }
+    #homeButton:hover {
+      background-color: #4cae4c;
+    }
+  </style>
+</head>
+<body>
+  <div id="buttons">
+    <button id="toggleMode">Açık/Koyu</button>
+    <button id="homeButton">Anasayfa</button>
+  </div>
+  <div id="filters">
+    <input type="text" id="clientNameFilter" placeholder="Müşteri Adı">
+    <input type="date" id="startDateFilter" placeholder="Başlangıç Tarihi">
+    <input type="date" id="endDateFilter" placeholder="Bitiş Tarihi">
+    <input type="number" id="minTotalFilter" placeholder="Min Toplam (₺)">
+    <input type="number" id="maxTotalFilter" placeholder="Max Toplam (₺)">
+    <button id="applyFilters">Uygula</button>
+    <button id="resetFilters">Sıfırla</button>
+  </div>
+
+  <div id="container">
+    <table id="dataTable" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Alışveriş ID</th>
+          <th>Müşteri Adı</th>
+          <th>Müşteri Soyadı</th>
+          <th>Ürün</th>
+          <th>Miktar</th>
+          <th>Birim Fiyatı (₺)</th>
+          <th>Toplam (₺)</th>
+          <th>Tarih</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="chart">
+      <canvas id="myChart" width="400" height="200"></canvas>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    $(document).ready(function () {
+      const table = $('#dataTable').DataTable({
+        ajax: {
+          url: 'http://localhost:8000/api/achats',
+          dataSrc: '',
+        },
+        columns: [
+          { data: 'id' },
+          { data: 'client_nom' },
+          { data: 'client_prenom' },
+          { data: 'produit_nom' },
+          { data: 'quantite' },
+          { data: 'prix_unitaire' },
+          { data: 'total' },
+          { data: 'date' },
+        ],
+      });
+
+      let chartInstance;
+
+      function updateChart(data) {
+        const produits = {};
+        data.forEach(item => {
+          if (produits[item.produit_nom]) {
+            produits[item.produit_nom] += item.total;
+          } else {
+            produits[item.produit_nom] = item.total;
+          }
+        });
+
+        const labels = Object.keys(produits);
+        const totals = Object.values(produits);
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Ürün Bazında Toplam Alışveriş (₺)',
+                data: totals,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: true,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+          },
+        });
+      }
+
+      $('#dataTable').on('xhr.dt', function (e, settings, json) {
+        updateChart(json);
+      });
+
+      // Filtreleri uygula
+      $('#applyFilters').on('click', function () {
+        const clientName = $('#clientNameFilter').val().toLowerCase();
+        const startDate = $('#startDateFilter').val();
+        const endDate = $('#endDateFilter').val();
+        const minTotal = parseFloat($('#minTotalFilter').val()) || 0;
+        const maxTotal = parseFloat($('#maxTotalFilter').val()) || Infinity;
+
+        table.ajax.url('http://localhost:8000/api/achats').load(function (data) {
+          const filteredData = data.filter(item => {
+            const clientMatch = clientName === '' || 
+              (item.client_nom + ' ' + item.client_prenom).toLowerCase().includes(clientName);
+            const dateMatch = (!startDate || new Date(item.date) >= new Date(startDate)) &&
+                              (!endDate || new Date(item.date) <= new Date(endDate));
+            const totalMatch = item.total >= minTotal && item.total <= maxTotal;
+
+            return clientMatch && dateMatch && totalMatch;
+          });
+
+          updateChart(filteredData);
+          table.clear();
+          table.rows.add(filteredData);
+          table.draw();
+        });
+      });
+
+      // Filtreleri sıfırla
+      $('#resetFilters').on('click', function () {
+        $('#clientNameFilter').val('');
+        $('#startDateFilter').val('');
+        $('#endDateFilter').val('');
+        $('#minTotalFilter').val('');
+        $('#maxTotalFilter').val('');
+
+        table.ajax.url('http://localhost:8000/api/achats').load(function (data) {
+          updateChart(data);
+          table.clear();
+          table.rows.add(data);
+          table.draw();
+        });
+      });
+
+      // Açık/Koyu modu
+      $('#toggleMode').on('click', function () {
+        $('body').toggleClass('dark-mode');
+      });
+
+      // Anasayfaya dön
+      $('#homeButton').on('click', function () {
+        window.location.href = 'dashboard.html'; // Anasayfa URL'sini buraya ekleyin
+      });
+    });
+  </script>
+</body>
+</html>

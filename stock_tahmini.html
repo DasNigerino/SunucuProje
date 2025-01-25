@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stok Tahminleri</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+</head>
+<body>
+    <h1>Satiş Tahminleri</h1>
+    <canvas id="forecastChart" width="400" height="200"></canvas>
+    <div id="recommendationOutput"></div>
+
+    <script>
+        async function fetchForecastData() {
+            try {
+                const response = await fetch('http://localhost:8000/api/forecast', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                
+                if (!response.ok) throw new Error('Tahmin verileri alınırken bir hata oluştu.');
+
+                const data = await response.json();
+                const predictions = data.predictions;
+                const dates = data.dates;
+
+                const forecastData = {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Gerçek Fiyat',
+                        data: predictions,
+                        borderColor: 'blue',
+                        fill: false
+                    }]
+                };
+
+                const ctx = document.getElementById('forecastChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: forecastData,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Stok Tahminleri'
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'day'
+                                }
+                            },
+                            y: {
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+
+                analyzePredictions(predictions, dates);
+            } catch (error) {
+                console.error('Tahminler sırasında bir hata oluştu:', error);
+            }
+        }
+
+        function analyzePredictions(predictions, labels) {
+            const recommendationOutput = document.getElementById('recommendationOutput');
+            recommendationOutput.innerHTML = ''; // İçeriği sıfırlama
+
+            const thresholdHigh = 20; // Yüksek talep eşiği
+            const thresholdLow = 5; // Düşük talep eşiği
+
+            const recommendations = predictions.map((prediction, index) => {
+                if (prediction > thresholdHigh) {
+                    return `${labels[index]} : Yüksek talep bekleniyor, erişilebilirliği artırın.`;
+                } else if (prediction < thresholdLow) {
+                    return `${labels[index]} : Düşük talep bekleniyor, promosyonları düşünün.`;
+                }
+                return `${labels[index]} : Mevcut stratejiyle devam edin.`;
+            });
+
+            recommendations.forEach(rec => {
+                const p = document.createElement('p');
+                p.textContent = rec;
+                recommendationOutput.appendChild(p);
+            });
+        }
+
+        // Sayfa yüklendiğinde verileri almayı başlat
+        fetchForecastData();
+    </script>
+</body>
+</html>

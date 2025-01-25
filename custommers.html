@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Müşteri Listesi</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #container {
+      max-width: 1000px;
+      margin: auto;
+    }
+    table {
+      width: 100%;
+    }
+    .dark-mode {
+      background-color: #333;
+      color: #fff;
+    }
+    .dark-mode table {
+      color: #fff;
+    }
+    .dark-mode th, .dark-mode td {
+      border-color: #555;
+    }
+    thead input {
+      width: 100%;
+      padding: 3px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="filters">
+    <input type="text" id="idFilter" placeholder="ID Ara">
+    <input type="text" id="nomFilter" placeholder="Ad Ara">
+    <input type="text" id="prenomFilter" placeholder="Soyad Ara">
+    <input type="text" id="emailFilter" placeholder="E-posta Ara">
+    <input type="text" id="telephoneFilter" placeholder="Telefon Ara">
+    <input type="text" id="dateFilter" placeholder="Tarih Ara">
+    <button id="applyFilters">Uygula</button>
+    <button id="resetFilters">Sıfırla</button>
+    <button id="toggleMode">Açık/Koyu</button>
+    <button id="homeButton">Anasayfa</button>
+  </div>
+
+  <div id="container">
+    <table id="clientsTable" class="display">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Ad</th>
+          <th>Soyad</th>
+          <th>E-posta</th>
+          <th>Telefon</th>
+          <th>Kayıt Tarihi</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      // Müşteri DataTable'ı başlat
+      const table = $('#clientsTable').DataTable({
+        ajax: {
+          url: 'http://localhost:8000/api/clients', // Doğru URL ile değiştirin
+          dataSrc: '',
+        },
+        columns: [
+          { data: 'id' },
+          { data: 'ad', title: 'Ad' },
+          { data: 'soyad', title: 'Soyad' },
+          { data: 'eposta', title: 'E-posta' },
+          { 
+            data: 'telefon',
+            title: 'Telefon',
+            render: function (data) {
+              return data ? data : 'Bilgi Verilmemiş'; // Boş verileri 'Bilgi Verilmemiş' ile değiştir
+            }
+          },
+          { 
+            data: 'date_inscription',
+            title: "Kayıt Tarihi",
+            render: function (data) {
+              // Tarih formatlama işlemi yapılırsa
+              if (data) {
+                const date = new Date(data);
+                return date.toLocaleDateString('tr-TR');
+              }
+              return 'Mevcut Değil';
+            }
+          },
+        ],
+        language: {
+          url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/tr-TR.json"
+        }
+      });
+
+      // Filtreleri uygulama
+      $('#applyFilters').on('click', function () {
+        table.column(0).search($('#idFilter').val()).draw();
+        table.column(1).search($('#nomFilter').val()).draw();
+        table.column(2).search($('#prenomFilter').val()).draw();
+        table.column(3).search($('#emailFilter').val()).draw();
+        table.column(4).search($('#telephoneFilter').val()).draw();
+        table.column(5).search($('#dateFilter').val()).draw();
+      });
+
+      // Filtreleri sıfırlama
+      $('#resetFilters').on('click', function () {
+        $('#idFilter').val('');
+        $('#nomFilter').val('');
+        $('#prenomFilter').val('');
+        $('#emailFilter').val('');
+        $('#telephoneFilter').val('');
+        $('#dateFilter').val('');
+        table.columns().search('').draw();
+      });
+
+      // Açık/Koyu mod
+      $('#toggleMode').on('click', function () {
+        $('body').toggleClass('dark-mode');
+      });
+
+      // Anasayfaya dön
+      $('#homeButton').on('click', function () {
+        window.location.href = 'dashboard.html'; // Doğru anasayfa URL'si ile değiştirin
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ürün İadeleri</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .dark-mode {
+      background-color: #333;
+      color: #fff;
+    }
+    .dark-mode table {
+      color: #fff;
+    }
+    .dark-mode th, .dark-mode td {
+      border-color: #555;
+    }
+    thead input {
+      width: 100%;
+      padding: 3px;
+      box-sizing: border-box;
+    }
+    #buttons {
+      margin-bottom: 20px;
+    }
+    #buttons button {
+      margin-right: 10px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #toggleMode {
+      background-color: #0275d8;
+      color: #fff;
+    }
+    #toggleMode:hover {
+      background-color: #025aa5;
+    }
+    #homeButton {
+      background-color: #5cb85c;
+      color: #fff;
+    }
+    #homeButton:hover {
+      background-color: #4cae4c;
+    }
+    .chart-container {
+      position: relative;
+      height: 400px;
+      width: 100%;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div id="buttons">
+    <button id="toggleMode">Aydınlık/Karanlık</button>
+    <button id="homeButton">Ana Sayfa</button>
+  </div>
+  <div class="section">
+    <h2>Ürün İadeleri</h2>
+    <table id="dataTable" class="display">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th>İade Sayısı</th>
+        </tr>
+        <tr>
+          <th><input type="text" placeholder="Ürün Ara" /></th>
+          <th><input type="text" placeholder="İade Sayısı Ara" /></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="retoursProduitsChart"></canvas>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    $(document).ready(function () {
+      const table = $('#dataTable').DataTable({
+        ajax: {
+          url: 'http://localhost:8000/api/retours-produits', // Doğru URL ile değiştirin
+          dataSrc: '',
+        },
+        columns: [
+          { data: 'produit' },
+          { 
+            data: 'nombre_retours',
+            render: function (data) {
+              return data || 0; // Null değerleri 0 ile değiştir
+            }
+          },
+        ],
+        language: {
+          url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/tr-TR.json'
+        },
+        initComplete: function () {
+          // Sütun bazında filtreleme uygulayın
+          this.api().columns().every(function () {
+            const column = this;
+            $('input', column.header()).on('keyup change clear', function () {
+              if (column.search() !== this.value) {
+                column.search(this.value).draw();
+              }
+            });
+          });
+        }
+      });
+
+      // Aydınlık/Karanlık modu
+      $('#toggleMode').on('click', function () {
+        $('body').toggleClass('dark-mode');
+      });
+
+      // Ana sayfaya dön
+      $('#homeButton').on('click', function () {
+        window.location.href = 'dashboard.html'; // Doğru ana sayfa URL'si ile değiştirin
+      });
+
+      // Grafik için verileri al
+      $.ajax({
+        url: 'http://localhost:8000/api/retours-produits', // Doğru URL ile değiştirin
+        method: 'GET',
+        success: function (data) {
+          const labels = data.map(item => item.produit);
+          const values = data.map(item => item.nombre_retours || 0);
+
+          const ctx = document.getElementById('retoursProduitsChart').getContext('2d');
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'İade Sayısı',
+                data: values,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              },
+              plugins: {
+                tooltip: {
+                  enabled: true,
+                  mode: 'index',
+                  intersect: false,
+                },
+                legend: {
+                  display: true,
+                  position: 'top',
+                  labels: {
+                    color: 'rgba(75, 192, 192, 1)'
+                  }
+                }
+              },
+              interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+              }
+            }
+          });
+        },
+        error: function (xhr, status, error) {
+          console.error('Grafik verileri yüklenirken hata oluştu:', error);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
